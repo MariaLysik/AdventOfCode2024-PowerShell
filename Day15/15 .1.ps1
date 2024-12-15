@@ -123,7 +123,7 @@ function Move-Box ([hashtable]$box,[string]$dir) {
       $boxesAhead["$($boxAhead.Row),$($boxAhead.LeftColumn),$($boxAhead.RightColumn)"] = $boxAhead
     }
   }
-  $boxesAhead.Keys | % {
+  $boxesAhead.Keys | ForEach-Object {
     Move-Box $boxesAhead[$_] $dir
   }
   $row = Get-RowAhead $box.Row $box.LeftColumn $dir
@@ -140,31 +140,28 @@ function Move-Box ([hashtable]$box,[string]$dir) {
   }
 }
 
-Display-Map
 $currentRow = $initRow
 $currentColumn = $initColumn
-foreach ($move in $moves) {
-  #Write-Host $currentRow $currentColumn $move
-  $rowAhead = Get-RowAhead $currentRow $currentColumn $move
-  $columnAhead = Get-ColumnAhead $currentRow $currentColumn $move
-  if (-Not (Is-Obstacle $rowAhead $columnAhead)) {
-    if (Is-Box $rowAhead $columnAhead) {
-      $boxAhead = (Get-BoxBlock $rowAhead $columnAhead)
-      if (Can-MoveBox $boxAhead $move) {
-        Move-Box $boxAhead $move
-        $map[$currentRow][$currentColumn] = $empty
-        $currentRow = $rowAhead
-        $currentColumn = $columnAhead
-        $map[$currentRow][$currentColumn] = $robot
-      }
+foreach ($dir in $moves) {
+  #Write-Host $currentRow $currentColumn $dir
+  $rowAhead = Get-RowAhead $currentRow $currentColumn $dir
+  $columnAhead = Get-ColumnAhead $currentRow $currentColumn $dir
+  if (Is-Obstacle $rowAhead $columnAhead) {
+    continue
+  }
+  if (Is-Box $rowAhead $columnAhead) {
+    $boxAhead = (Get-BoxBlock $rowAhead $columnAhead)
+    if (Can-MoveBox $boxAhead $dir) {
+      Move-Box $boxAhead $dir
     }
     else {
-      $map[$currentRow][$currentColumn] = $empty
-      $currentRow = $rowAhead
-      $currentColumn = $columnAhead
-      $map[$currentRow][$currentColumn] = $robot
+      continue
     }
   }
+  $map[$currentRow][$currentColumn] = $empty
+  $currentRow = $rowAhead
+  $currentColumn = $columnAhead
+  $map[$currentRow][$currentColumn] = $robot
   #Display-Map
 }
 $sum = 0

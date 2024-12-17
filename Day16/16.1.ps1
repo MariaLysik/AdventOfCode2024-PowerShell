@@ -1,6 +1,5 @@
-﻿#$f = Get-Content .\Day16\16.txt
-$f = Get-Content .\Day16\16.test.txt
-# Dijkstra
+﻿$f = Get-Content .\Day16\16.txt
+# A* algorithm
 
 $right = '>'
 $left = '<'
@@ -48,33 +47,45 @@ for ($x = 0; $x -lt $f.Length; $x++) {
   }
 }
 
-Write-Host 'start' $start 'end' $end
-
-$direction = @{}
-$distance = @{}
-$visited = @{}
-$neighbors.Keys | ForEach-Object {
-  $distance[$_] = [double]::PositiveInfinity
-  $visited[$_] = $false
+# heuristic function for A*
+function DistanceInStraightLine([string]$a,[string]$b) {
+  [int]$ax, [int]$ay = $a.Split(',')
+  [int]$bx, [int]$by = $b.Split(',')
+  return [Math]::Sqrt([Math]::Pow($ax-$bx,2) + [Math]::Pow($ay-$by,2))
 }
 
+Write-Host 'start' $start 'end' $end
+
+$openSet = @{}
+$openSet[$start] = DistanceInStraightLine $start $end
+$predecessor = @{}
+$direction = @{}
+$distance = @{}
 $distance[$start] = 0
 $direction[$start] = $right
-while ($neighbors.Count -gt 0) {
-  $currentNode = $distance.GetEnumerator() | Where-Object { $visited[$_.Key] -eq $false } | Sort-Object -Property "Value" | Select-Object -First 1
+while ($openSet.Count -gt 0) {
+  $currentNode = $openSet.GetEnumerator() | Sort-Object -Property "Value" | Select-Object -First 1
   Write-Host $currentNode
-  $visited[$currentNode.Key] = $true
+  if ($currentNode.Key -eq $end) {
+    Write-Host 'end!'
+    break
+  }
   foreach ($neighbor in $neighbors[$currentNode.Key].GetEnumerator()) {
-    if ($visited[$neighbor.Key]) {
-      continue
-    }
     $cost = $direction[$currentNode.Key] -eq $neighbor.Value ? 1 : 1001
-    if ($distance[$neighbor.Key] -gt $distance[$currentNode.Key] + $cost) {
+    if ($null -eq $distance[$neighbor.Key] -or $distance[$neighbor.Key] -gt $distance[$currentNode.Key] + $cost) {
       $distance[$neighbor.Key] = $distance[$currentNode.Key] + $cost
+      $predecessor[$neighbor.Key] = $currentNode.Key
       $direction[$neighbor.Key] = $neighbor.Value
+      $openSet[$neighbor.Key] = $distance[$currentNode.Key] + $cost + (DistanceInStraightLine $neighbor.Key $end)
     }
   }
-  $neighbors.Remove($currentNode.Key)
+  $openSet.Remove($currentNode.Key)
+}
+
+$currentNode = $end
+while($predecessor[$currentNode]) {
+  Write-Host $predecessor[$currentNode]
+  $currentNode = $predecessor[$currentNode]
 }
 
 Write-Host $distance[$end]

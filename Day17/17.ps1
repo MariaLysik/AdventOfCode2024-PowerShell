@@ -1,8 +1,8 @@
 ﻿$f = Get-Content .\Day17\17.txt
 
-[int]$A = [Regex]::new('(\d+)').Matches($f[0]).Value
-[int]$B = [Regex]::new('(\d+)').Matches($f[1]).Value
-[int]$C = [Regex]::new('(\d+)').Matches($f[2]).Value
+[long]$A = [Regex]::new('(\d+)').Matches($f[0]).Value
+[long]$B = [Regex]::new('(\d+)').Matches($f[1]).Value
+[long]$C = [Regex]::new('(\d+)').Matches($f[2]).Value
 [int[]]$program = [Regex]::new('(\d+)').Matches($f[4]).Value
 
 $output = @()
@@ -16,7 +16,7 @@ while ($pointer -lt $program.Count) {
   else {
     $comboValue = $operand -eq 4 ? $A : $operand -eq 5 ? $B : $operand -eq 6 ? $C : $operand
     if ($opCode -eq 0) {
-      $A = [Math]::Floor($A/[Math]::Pow(2,$comboValue))
+      $A = $A -shr $comboValue
     }
     elseif ($opCode -eq 1) {
       $B = $B -bxor $operand
@@ -31,10 +31,10 @@ while ($pointer -lt $program.Count) {
       $output += ($comboValue % 8)
     }
     elseif ($opCode -eq 6) {
-      $B = [Math]::Floor($A/[Math]::Pow(2,$comboValue))
+      $B = $A -shr $comboValue
     }
     elseif ($opCode -eq 7) {
-      $C = [Math]::Floor($A/[Math]::Pow(2,$comboValue))
+      $C = $A -shr $comboValue
     }
     $pointer = $pointer +2
   }

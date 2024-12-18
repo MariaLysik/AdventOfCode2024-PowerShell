@@ -1,7 +1,6 @@
-﻿$f = Get-Content .\Day17\17.txt
-[int[]]$program = [Regex]::new('(\d+)').Matches($f[4]).Value
+﻿[int[]]$program = @(2,4,1,1,7,5,1,5,0,3,4,4,5,5,3,0)
 
-function Execute([long]$a) {
+function Get-ProgramOutput([long]$a) {
   $b = $a % 8
   $b = $b -bxor 1
   $c = $a -shr $b
@@ -15,7 +14,7 @@ for ($i = $program.Count-1; $i -ge 0; $i--) {
   for($j = 0; $j -lt 8; $j++) {
     foreach ($possibleA in $results[$i+1]) {
       [long]$tempA = $possibleA * 8 + $j
-      $tempOut = Execute $tempA
+      $tempOut = Get-ProgramOutput $tempA
       if ($tempOut -eq $program[$i]) {
         #Write-Host $tempA $tempOut
         $results[$i] += ,$tempA

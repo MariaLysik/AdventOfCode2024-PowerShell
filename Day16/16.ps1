@@ -1,80 +1,112 @@
-﻿#$f = Get-Content .\Day16\16.txt
-$f = Get-Content .\Day16\16.test.txt
-# Dijkstra
+﻿$DATA_INPUT = Get-Content .\Day16\16.txt
+$START = 'S'
+$END = 'E'
+$RIGHT = '>'
+$LEFT = '<'
+$UP = '^'
+$DOWN = 'v'
+$OBSTACLE = '#'
 
-$right = '>'
-$left = '<'
-$up = '^'
-$down = 'v'
-$start = 'S'
-$end = 'E'
-$obstacle = '#'
-$neighbors = @{} #graph
+function Add-RotationNodes([hashtable]$g,[int]$x,[int]$y,[int]$cost = 1000) {
+  $u,$d,$l,$r = @($UP,$DOWN,$LEFT,$RIGHT) | ForEach-Object {"${x},${y},"+$_}
+  @($u,$d,$l,$r) | ForEach-Object {
+    if ($null -eq $g[$_]) {
+      $g[$_] = @{}
+    }
+  }
+  $g[$u][$r] = $cost
+  $g[$r][$u] = $cost
+  $g[$d][$r] = $cost
+  $g[$r][$d] = $cost
+  $g[$d][$l] = $cost
+  $g[$l][$d] = $cost
+  $g[$u][$l] = $cost
+  $g[$l][$u] = $cost
+}
 
-for ($x = 0; $x -lt $f.Length; $x++) {
-  for ($y = 0; $y -lt $f[$x].Length; $y++) {
-    if ($f[$x][$y] -eq $obstacle) {
+$graph = @{}
+for ($x = 0; $x -lt $DATA_INPUT.Length; $x++) {
+  for ($y = 0; $y -lt $DATA_INPUT[$x].Length; $y++) {
+    if ($DATA_INPUT[$x][$y] -eq $OBSTACLE) {
       continue
     }
     $currentValue = "${x},${y}"
-    if ($f[$x][$y] -eq $start) {
-      $start = $currentValue
+    $rotationCost = 1000
+    if ($DATA_INPUT[$x][$y] -eq $START) {
+      $START = "$currentValue,$RIGHT"
     }
-    elseif ($f[$x][$y] -eq $end) {
-      $end = $currentValue
+    elseif ($DATA_INPUT[$x][$y] -eq $END) {
+      $END= "$currentValue,$RIGHT"
+      $rotationCost = 0
     }
-    if ($y+1 -lt $f[$x].Length -and $f[$x][$y+1] -ne $obstacle) {
-      $neighborValue = "${x},$($y+1)"
-      if ($null -eq $neighbors[$currentValue]) {
-        $neighbors[$currentValue] = @{}
+    Add-RotationNodes $graph $x $y $rotationCost
+    if ($y+1 -lt $DATA_INPUT[$x].Length -and $DATA_INPUT[$x][$y+1] -ne $OBSTACLE) {
+      $graph["$currentValue,$RIGHT"]["${x},$($y+1),$RIGHT"] = 1
+      $neighborLeftValue = "${x},$($y+1),$LEFT"
+      if ($null -eq $graph[$neighborLeftValue]) {
+        $graph[$neighborLeftValue] = @{}
       }
-      $neighbors[$currentValue][$neighborValue] = $right
-      if ($null -eq $neighbors[$neighborValue]) {
-        $neighbors[$neighborValue] = @{}
-      }
-      $neighbors[$neighborValue][$currentValue] = $left
+      $graph[$neighborLeftValue]["$currentValue,$LEFT"] = 1
     }
-    if ($x+1 -lt $f.Length -and $f[$x+1][$y] -ne $obstacle) {
-      $neighborValue = "$($x+1),${y}"
-      if ($null -eq $neighbors[$currentValue]) {
-        $neighbors[$currentValue] = @{}
+    if ($x+1 -lt $DATA_INPUT.Length -and $DATA_INPUT[$x+1][$y] -ne $OBSTACLE) {
+      $graph["$currentValue,$DOWN"]["$($x+1),${y},$DOWN"] = 1
+      $neighborUpValue = "$($x+1),${y},$UP"
+      if ($null -eq $graph[$neighborUpValue]) {
+        $graph[$neighborUpValue] = @{}
       }
-      $neighbors[$currentValue][$neighborValue] = $down
-      if ($null -eq $neighbors[$neighborValue]) {
-        $neighbors[$neighborValue] = @{}
-      }
-      $neighbors[$neighborValue][$currentValue] = $up
+      $graph[$neighborUpValue]["$currentValue,$UP"] = 1
     }
   }
 }
 
-Write-Host 'start' $start 'end' $end
-
-$direction = @{}
+# Dijkstra
+Write-Host $START $END
 $distance = @{}
 $visited = @{}
-$neighbors.Keys | ForEach-Object {
+$predecessor = @{}
+$graph.Keys | ForEach-Object {
   $distance[$_] = [double]::PositiveInfinity
   $visited[$_] = $false
 }
-
 $distance[$start] = 0
-$direction[$start] = $right
-while ($neighbors.Count -gt 0) {
+while ($graph.Count -gt 0) {
   $currentNode = $distance.GetEnumerator() | Where-Object { $visited[$_.Key] -eq $false } | Sort-Object -Property "Value" | Select-Object -First 1
   Write-Host $currentNode
   $visited[$currentNode.Key] = $true
-  foreach ($neighbor in $neighbors[$currentNode.Key].GetEnumerator()) {
+  foreach ($neighbor in $graph[$currentNode.Key].GetEnumerator()) {
     if ($visited[$neighbor.Key]) {
       continue
     }
-    $cost = $direction[$currentNode.Key] -eq $neighbor.Value ? 1 : 1001
-    if ($distance[$neighbor.Key] -gt $distance[$currentNode.Key] + $cost) {
-      $distance[$neighbor.Key] = $distance[$currentNode.Key] + $cost
-      $direction[$neighbor.Key] = $neighbor.Value
+    if ($distance[$neighbor.Key] -eq $distance[$currentNode.Key] + $neighbor.Value) {
+      $predecessor[$neighbor.Key] += ,$currentNode.Key
+    }
+    elseif ($distance[$neighbor.Key] -gt $distance[$currentNode.Key] + $neighbor.Value) {
+      $distance[$neighbor.Key] = ($distance[$currentNode.Key] + $neighbor.Value)
+      $predecessor[$neighbor.Key] = @($currentNode.Key)
     }
   }
-  $neighbors.Remove($currentNode.Key)
+  $graph.Remove($currentNode.Key)
 }
 
-Write-Host $distance[$end]
+Write-Host $distance[$END]
+
+$toBeVisited = @{$END = $true}
+$visited = @{}
+while ($toBeVisited.Count -gt 0) {
+  $currentNode = $toBeVisited.GetEnumerator() | Select-Object -First 1
+  foreach($previousNode in $predecessor[$currentNode.Key]) {
+    if ($null -eq $visited[$previousNode]) {
+      $toBeVisited[$previousNode] = $true
+    }
+  }
+  $visited[$currentNode.Key] = $true
+  $toBeVisited.Remove($currentNode.Key)
+}
+
+$result = @()
+$visited.Keys | ForEach-Object {
+  $x, $y, $d = $_.Split(',')
+  $result += "${x},${y}"
+}
+$uniqueCells = $result | Select-Object -Unique
+Write-Host $uniqueCells.Count

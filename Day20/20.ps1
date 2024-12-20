@@ -5,27 +5,18 @@ $START = '?'
 $END = '?'
 $TRACK = @{}
 $VISITED = @{}
+$CHEAT_PAUSE = 2
 
-function Get-DirectNeighbors([int]$x,[int]$y) {
-  return @(
-    "$($x),$($y-1)",
-    "$($x-1),$($y)",
-    "$($x+1),$($y)",
-    "$($x),$($y+1)"
-  )
-}
-
-function Get-TwoStepNeighbors([int]$x,[int]$y) {
-  return @(
-    "$($x),$($y-2)",
-    "$($x-1),$($y-1)",
-    "$($x+1),$($y-1)",
-    "$($x-2),$($y)",
-    "$($x+2),$($y)",
-    "$($x-1),$($y+1)",
-    "$($x+1),$($y+1)",
-    "$($x),$($y+2)"
-  )
+function Get-NStepNeighbors([int]$x,[int]$y,[int]$n) {
+  $neighbors = @{}
+  for ($dx = 0; $dx -le $n; $dx++) {
+    $dy = $n - $dx
+    $neighbors["$($x+$dx),$($y+$dy)"] = $n
+    $neighbors["$($x-$dx),$($y-$dy)"] = $n
+    $neighbors["$($x+$dx),$($y-$dy)"] = $n
+    $neighbors["$($x-$dx),$($y+$dy)"] = $n
+  }
+  return $neighbors.Keys
 }
 
 function Update-Neighbors([string]$key) {
@@ -41,8 +32,8 @@ for ($y = 0; $y -lt $MAX_Y; $y++) {
       'E' { $END = $fieldKey }
       {$_ -ne '#'} {
         $TRACK[$fieldKey] = @{} 
-        $TRACK[$fieldKey]['next'] = Get-DirectNeighbors $x $y
-        $TRACK[$fieldKey]['jump'] = Get-TwoStepNeighbors $x $y
+        $TRACK[$fieldKey]['next'] = Get-NStepNeighbors $x $y 1
+        $TRACK[$fieldKey]['jump'] = Get-NStepNeighbors $x $y $CHEAT_PAUSE
       }
     }
   }
@@ -65,7 +56,7 @@ $TRESHOLD = 100
 $cheatsOverTresholdCount = 0
 foreach($field in $TRACK.GetEnumerator()) {
   foreach($jump in $field.Value.jump) {
-    if ($TRACK[$jump].time - $field.Value.time -gt $TRESHOLD) {
+    if ($TRACK[$jump].time - $field.Value.time -$CHEAT_PAUSE -ge $TRESHOLD) {
       Write-Host $field.Key 'jumps to' $jump
       $cheatsOverTresholdCount++
     }

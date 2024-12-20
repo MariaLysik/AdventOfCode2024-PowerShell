@@ -1,4 +1,4 @@
-﻿$DATA_INPUT = Get-Content C:\Users\lysim\Projects\AdventOfCode2024-PowerShell\Day19\19.txt
+﻿$DATA_INPUT = Get-Content .\Day19\19.txt
 [string[]]$PATTERNS = $DATA_INPUT[0] -split ", "
 $REGEX_WITH_PATTERNS = "^($($PATTERNS -join '|'))*$"
 
@@ -8,7 +8,7 @@ function Count-WaysToBuildFromPatterns([string]$design) {
   for ($i = 1; $i -le $design.Length; $i++) {
     foreach($pattern in $PATTERNS) {
       if ($i -ge $pattern.Length -and $design.substring($i-$pattern.Length,$pattern.Length) -eq $pattern) {
-        # every time a pattern fits, increment current count by the number of ways to build design until that pattern starts
+        # every time a pattern fits, increment current count by the number of ways to build design that far
         $countUntil[$i] += $countUntil[$i-$pattern.Length]
       }
     }

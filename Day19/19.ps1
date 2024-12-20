@@ -8,7 +8,7 @@ function Count-WaysToBuildFromPatterns([string]$design) {
   for ($i = 1; $i -le $design.Length; $i++) {
     foreach($pattern in $PATTERNS) {
       if ($i -ge $pattern.Length -and $design.substring($i-$pattern.Length,$pattern.Length) -eq $pattern) {
-        # every time a pattern fits, increment current count by the number of ways to build design so far
+        # every time a pattern fits, increment current count by the number of ways to build design until that pattern starts
         $countUntil[$i] += $countUntil[$i-$pattern.Length]
       }
     }

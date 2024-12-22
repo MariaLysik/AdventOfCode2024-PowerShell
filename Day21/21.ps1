@@ -4,6 +4,7 @@ $RIGHT = '>'
 $UP = '^'
 $DOWN = 'v'
 $ACTIVATE = 'A'
+
 $NUMERIC_KEYPAD_GRAPH = @{
   $ACTIVATE = @{'0'=$LEFT;'3'=$UP}
   '0' = @{$ACTIVATE=$RIGHT;'2'=$UP}
@@ -76,7 +77,6 @@ function Dijkstra ([hashtable]$G,[string]$root,[bool]$weighted = $false) {
 
 function RotationCost([string]$path,[bool]$weighted) {
   $current = $path[0].ToString()
-  #$cost = $weighted ? $DIRECTIONAL_KEYPAD_SHORTEST_PATH[$ACTIVATE][$current].Length : 0
   $cost = 0
   for($j = 1; $j -lt $path.Length; $j++) {
     $next = $path[$j].toString()
@@ -113,41 +113,62 @@ function Get-AllPaths([hashtable]$G, [hashtable]$P, [string]$node) {
 $DIRECTIONAL_KEYPAD_SHORTEST_PATH = @{}
 $DIRECTIONAL_KEYPAD_GRAPH.Keys | ForEach-Object {
   $DIRECTIONAL_KEYPAD_SHORTEST_PATH[$_] = Dijkstra $DIRECTIONAL_KEYPAD_GRAPH $_
+  $DIRECTIONAL_KEYPAD_SHORTEST_PATH[$_][$_] = ''
 }
-
-#TODO cost should be wighted by cost of moving on directional keypad
 $NUMERIC_KEYPAD_SHORTEST_PATH = @{}
 $NUMERIC_KEYPAD_GRAPH.Keys | ForEach-Object {
   $NUMERIC_KEYPAD_SHORTEST_PATH[$_] = Dijkstra $NUMERIC_KEYPAD_GRAPH $_ $true
+  $NUMERIC_KEYPAD_SHORTEST_PATH[$_][$_] = ''
 }
 
-function Get-Sequence([string]$numericSequence) {
+function DisplayShortestPaths([hashtable]$H) {
+  foreach ($from in $H.GetEnumerator()) {
+    foreach ($to in $from.Value.GetEnumerator()) {
+      Write-Host $from.Key '->' $to.Key ':' $to.Value
+    }
+  }
+}
+#DisplayShortestPaths $DIRECTIONAL_KEYPAD_SHORTEST_PATH
+#DisplayShortestPaths $NUMERIC_KEYPAD_SHORTEST_PATH
+
+function Get-InitialDirectionalSequence([string]$numericSequence) {
   $result = ''
   $numKeyPadPosition = $ACTIVATE
-  $dirKeyPadOnePosition = $ACTIVATE
-  $dirKeyPadTwoPosition = $ACTIVATE
   for($i = 0; $i -lt $numericSequence.Length; $i++) {
-    $currentNumber = $numericSequence[$i].toString()
-    $directionalSequenceOne = ($NUMERIC_KEYPAD_SHORTEST_PATH[$numKeyPadPosition][$currentNumber] + $ACTIVATE)
-    for($j = 0; $j -lt $directionalSequenceOne.Length; $j++) {
-      $currentDirectionOne = $directionalSequenceOne[$j].toString()
-      $directionalSequenceTwo = ($DIRECTIONAL_KEYPAD_SHORTEST_PATH[$dirKeyPadOnePosition][$currentDirectionOne] + $ACTIVATE)
-      for($k = 0; $k -lt $directionalSequenceTwo.Length; $k++) {
-        $currentDirectionTwo = $directionalSequenceTwo[$k].toString()
-        $result += ($DIRECTIONAL_KEYPAD_SHORTEST_PATH[$dirKeyPadTwoPosition][$currentDirectionTwo] + $ACTIVATE)
-        $dirKeyPadTwoPosition = $currentDirectionTwo
-      }
-      $dirKeyPadOnePosition = $currentDirectionOne
-    }
-    $numKeyPadPosition = $currentNumber
+    $current = $numericSequence[$i].toString()
+    $result += ($NUMERIC_KEYPAD_SHORTEST_PATH[$numKeyPadPosition][$current] + $ACTIVATE)
+    $numKeyPadPosition = $current
   }
   return $result
 }
 
+function Do-Robot ([hashtable]$sequences) {
+  $newSequences = @{}
+  foreach($sequence in $sequences.GetEnumerator()) {
+    $previous = $ACTIVATE
+    for($i = 0; $i -lt $sequence.Key.Length; $i++) {
+      $current = $sequence.Key[$i].toString()
+      $newSequences["$($DIRECTIONAL_KEYPAD_SHORTEST_PATH[$previous][$current] + $ACTIVATE)"] += $sequence.Value
+      $previous = $current
+    }
+  }
+  return $newSequences
+}
+
+$DIRECTIONAL_LOOP_COUNT = 2
 $sum = 0
 foreach ($line in $DATA_INPUT) {
   [int]$number = [Regex]::new('(\d+)').Matches($line).Value
-  $sequence = (Get-Sequence $line)
-  $sum += ($sequence.Length * $number)
+  $initSequence = (Get-InitialDirectionalSequence $line)
+  $sequenceMap = @{$initSequence = 1}
+  for ($robot = 0; $robot -lt $DIRECTIONAL_LOOP_COUNT; $robot++) {
+    $sequenceMap = (Do-Robot $sequenceMap)
+  }
+  $total = 0
+  $sequenceMap.GetEnumerator() | ForEach-Object { $total += ($_.Key.Length * $_.value) }
+  $sum += ($total  * $number)
 }
 Write-Host $sum
+
+# Part 1, for 2 robots OK - 248684
+# Part 2, for 25 too high - 307690647084640

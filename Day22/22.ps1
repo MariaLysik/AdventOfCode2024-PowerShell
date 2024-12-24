@@ -2,7 +2,7 @@
 $ITERATIONS = 2000
 
 function Get-ProgramOutput([long]$a) {
-  $a = (($a -shl 6) -bxor $a) % 16777216
+  $a = (($a -shl 6) -bxor $a) % 16777216 # Pow(2,24), gets only last 24 bits
   $a = (($a -shr 5) -bxor $a) % 16777216
   $a = (($a -shl 11) -bxor $a) % 16777216
   return $a
